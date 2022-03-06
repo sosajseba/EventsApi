@@ -55,15 +55,22 @@ app.MapGet("/event", (IMapper mapper, [FromServices] IEventService eventService)
 
 app.MapGet("/event/{id}", ([FromServices] IEventService eventService, IMapper mapper, string id) =>
 {
-    var eventGet = eventService.Get(id);
-
-    if (eventGet != null)
+    try
     {
-        var eventDto = mapper.Map<GetEvent>(eventGet);
-        return Results.Ok(eventDto);
-    }
+        var eventGet = eventService.Get(id);
 
-    return Results.NotFound();
+        if (eventGet != null)
+        {
+            var eventDto = mapper.Map<GetEvent>(eventGet);
+            return Results.Ok(eventDto);
+        }
+
+        return Results.NotFound();
+    }
+    catch (FormatException e)
+    {
+        return Results.BadRequest(e.Message);
+    }
 });
 
 app.MapPost("/event", (IValidator<PostEvent> validator, IMapper mapper, [FromServices] IEventService eventService, PostEvent eventDto) =>
@@ -85,24 +92,38 @@ app.MapPost("/event", (IValidator<PostEvent> validator, IMapper mapper, [FromSer
 
 app.MapPut("/event/{id}", (IValidator<PostEvent> validator, IMapper mapper, [FromServices] IEventService eventService, string id, PostEvent eventDto) =>
 {
-    var validation = validator.Validate(eventDto);
-
-    if (!validation.IsValid)
+    try
     {
-        var errors = new { errors = validation.Errors.Select(e => e.ErrorMessage) };
-        return Results.BadRequest(errors);
+        var validation = validator.Validate(eventDto);
+
+        if (!validation.IsValid)
+        {
+            var errors = new { errors = validation.Errors.Select(e => e.ErrorMessage) };
+            return Results.BadRequest(errors);
+        }
+        var updatedEvent = mapper.Map<Event>(eventDto);
+
+        var result = eventService.Update(id, updatedEvent);
+
+        return result.MatchedCount == 0 ? Results.NotFound() : Results.Ok(result);
     }
-    var updatedEvent = mapper.Map<Event>(eventDto);
-
-    var result = eventService.Update(id, updatedEvent);
-
-    return result.MatchedCount == 0 ? Results.NotFound() : Results.Ok(result);
+    catch (FormatException e)
+    {
+        return Results.BadRequest(e.Message);
+    }
 });
 
 app.MapDelete("/event/{id}", ([FromServices] IEventService eventService, string id) =>
 {
-    var result = eventService.Delete(id);
-    return result.DeletedCount == 0 ? Results.NotFound() : Results.Ok(result);
+    try
+    {
+        var result = eventService.Delete(id);
+        return result.DeletedCount == 0 ? Results.NotFound() : Results.Ok(result);
+    }
+    catch (FormatException e)
+    {
+        return Results.BadRequest(e.Message);
+    }
 });
 
 app.Run();
