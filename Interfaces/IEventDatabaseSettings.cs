@@ -1,9 +1,8 @@
-﻿namespace EventApi.Interfaces
+﻿namespace EventApi.Interfaces;
+
+public interface IEventDatabaseSettings
 {
-    public interface IEventDatabaseSettings
-    {
-        string EventsCollectionName { get; set; }
-        string ConnectionString { get; set; }
-        string DatabaseName { get; set; }
-    }
+    string EventsCollectionName { get; set; }
+    string ConnectionString { get; set; }
+    string DatabaseName { get; set; }
 }

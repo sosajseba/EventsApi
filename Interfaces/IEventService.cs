@@ -1,13 +1,13 @@
 ﻿using EventApi.Models;
+using MongoDB.Driver;
 
-namespace EventApi.Interfaces
+namespace EventApi.Interfaces;
+
+public interface IEventService
 {
-    public interface IEventService
-    {
-        List<Event> Get();
-        Event Get(string id);
-        Event Create(Event evento);
-        void Update(string id, Event evento);
-        void Delete(string id);
-    }
+    List<Event> Get();
+    Event Get(string id);
+    Event Create(Event evento);
+    ReplaceOneResult Update(string id, Event evento);
+    DeleteResult Delete(string id);
 }
