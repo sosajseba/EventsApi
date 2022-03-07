@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using EventsApi.Dtos;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace EventApi.Models;
@@ -22,4 +23,16 @@ public class Event
     public string Location { get; set; } = null!;
     [BsonElement("price")]
     public decimal Price { get; set; }
+
+    public EventGet ToDto() => new()
+    {
+        Id = Id,
+        Name = Name ?? "",
+        Title = Title ?? "",
+        Description = Description ?? "",
+        Type = Type ?? "",
+        Date = Date,
+        Location = Location ?? "",
+        Price = Price
+    };
 }

@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace EventsApi.Validators;
 
-public class EventValidator : AbstractValidator<PostEvent>
+public class EventValidator : AbstractValidator<EventPost>
 {
     public EventValidator()
     {

@@ -1,6 +1,6 @@
 ﻿namespace EventsApi.Dtos;
 
-public class GetEvent
+public class EventGet
 {
     public string? Id { get; set; }
     public string? Name { get; set; }
