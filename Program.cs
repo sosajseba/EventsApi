@@ -1,10 +1,7 @@
-using AutoMapper;
 using EventApi.Interfaces;
-using EventApi.Models;
 using EventApi.Services;
 using EventApi.Settings;
 using EventsApi.Dtos;
-using EventsApi.Mapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
@@ -16,8 +13,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.Configure<EventDatabaseSettings>(
     builder.Configuration.GetSection(nameof(EventDatabaseSettings)));
-
-builder.Services.AddSingleton(new MapperConfiguration(mc => mc.AddProfile(new EventMapper())).CreateMapper());
 
 builder.Services.AddSingleton<IEventDatabaseSettings>(sp =>
     sp.GetRequiredService<IOptions<EventDatabaseSettings>>().Value);
@@ -31,7 +26,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<PostEvent>());
+builder.Services.AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<EventPost>());
 
 var app = builder.Build();
 
@@ -44,16 +39,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/event", (IMapper mapper, [FromServices] IEventService eventService) =>
+app.MapGet("/event", ([FromServices] IEventService eventService) =>
 {
     var events = eventService.Get();
 
-    var eventDtos = mapper.Map<List<Event>, List<GetEvent>>(events);
+    var eventDtos = from e in events select e.ToDto();
 
     return Results.Ok(eventDtos);
 });
 
-app.MapGet("/event/{id}", ([FromServices] IEventService eventService, IMapper mapper, string id) =>
+app.MapGet("/event/{id}", ([FromServices] IEventService eventService, string id) =>
 {
     try
     {
@@ -61,7 +56,7 @@ app.MapGet("/event/{id}", ([FromServices] IEventService eventService, IMapper ma
 
         if (eventGet != null)
         {
-            var eventDto = mapper.Map<GetEvent>(eventGet);
+            var eventDto = eventGet.ToDto();
             return Results.Ok(eventDto);
         }
 
@@ -73,7 +68,7 @@ app.MapGet("/event/{id}", ([FromServices] IEventService eventService, IMapper ma
     }
 });
 
-app.MapPost("/event", (IValidator<PostEvent> validator, IMapper mapper, [FromServices] IEventService eventService, PostEvent eventDto) =>
+app.MapPost("/event", (IValidator<EventPost> validator, [FromServices] IEventService eventService, EventPost eventDto) =>
 {
 
     var validation = validator.Validate(eventDto);
@@ -83,14 +78,14 @@ app.MapPost("/event", (IValidator<PostEvent> validator, IMapper mapper, [FromSer
         var errors = new { errors = validation.Errors.Select(e => e.ErrorMessage) };
         return Results.BadRequest(errors);
     }
-    var newEvent = mapper.Map<Event>(eventDto);
+    var newEvent = eventDto.ToEntity();
 
     eventService.Create(newEvent);
 
     return Results.Created("Created:", eventDto);
 });
 
-app.MapPut("/event/{id}", (IValidator<PostEvent> validator, IMapper mapper, [FromServices] IEventService eventService, string id, PostEvent eventDto) =>
+app.MapPut("/event/{id}", (IValidator<EventPost> validator, [FromServices] IEventService eventService, string id, EventPost eventDto) =>
 {
     try
     {
@@ -101,7 +96,7 @@ app.MapPut("/event/{id}", (IValidator<PostEvent> validator, IMapper mapper, [Fro
             var errors = new { errors = validation.Errors.Select(e => e.ErrorMessage) };
             return Results.BadRequest(errors);
         }
-        var updatedEvent = mapper.Map<Event>(eventDto);
+        var updatedEvent = eventDto.ToEntity();
 
         var result = eventService.Update(id, updatedEvent);
 
