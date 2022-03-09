@@ -6,6 +6,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,9 +25,45 @@ builder.Services.AddScoped<IEventService, EventService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "EventsApi", Version = "v1" });
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Token Bearer",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[]{}
+                    }
+                });
+});
 
 builder.Services.AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<EventPost>());
+
+builder.Services.AddAuthentication("Bearer")
+      .AddJwtBearer("Bearer", options =>
+      {
+          options.RequireHttpsMetadata = false;
+          options.Authority = "http://localhost:8080/realms/blue-team/";
+          options.Audience = "account";
+          options.SaveToken = true;
+      });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -38,6 +75,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/event", ([FromServices] IEventService eventService) =>
 {
@@ -46,7 +85,7 @@ app.MapGet("/event", ([FromServices] IEventService eventService) =>
     var eventDtos = from e in events select e.ToDto();
 
     return Results.Ok(eventDtos);
-});
+}).RequireAuthorization();
 
 app.MapGet("/event/{id}", ([FromServices] IEventService eventService, string id) =>
 {
@@ -66,7 +105,7 @@ app.MapGet("/event/{id}", ([FromServices] IEventService eventService, string id)
     {
         return Results.BadRequest(e.Message);
     }
-});
+}).RequireAuthorization();
 
 app.MapPost("/event", (IValidator<EventPost> validator, [FromServices] IEventService eventService, EventPost eventDto) =>
 {
@@ -83,7 +122,7 @@ app.MapPost("/event", (IValidator<EventPost> validator, [FromServices] IEventSer
     eventService.Create(newEvent);
 
     return Results.Created("Created:", eventDto);
-});
+}).RequireAuthorization();
 
 app.MapPut("/event/{id}", (IValidator<EventPost> validator, [FromServices] IEventService eventService, string id, EventPost eventDto) =>
 {
@@ -106,7 +145,7 @@ app.MapPut("/event/{id}", (IValidator<EventPost> validator, [FromServices] IEven
     {
         return Results.BadRequest(e.Message);
     }
-});
+}).RequireAuthorization();
 
 app.MapDelete("/event/{id}", ([FromServices] IEventService eventService, string id) =>
 {
@@ -119,6 +158,6 @@ app.MapDelete("/event/{id}", ([FromServices] IEventService eventService, string 
     {
         return Results.BadRequest(e.Message);
     }
-});
+}).RequireAuthorization();
 
 app.Run();
