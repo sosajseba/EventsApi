@@ -59,8 +59,8 @@ builder.Services.AddAuthentication("Bearer")
       .AddJwtBearer("Bearer", options =>
       {
           options.RequireHttpsMetadata = false;
-          options.Authority = "http://localhost:8080/realms/blue-team/";
-          options.Audience = "account";
+          options.Authority = builder.Configuration.GetValue<string>("JwtConfig:Authority");
+          options.Audience = builder.Configuration.GetValue<string>("JwtConfig:Audience");
           options.SaveToken = true;
       });
 builder.Services.AddAuthorization();
