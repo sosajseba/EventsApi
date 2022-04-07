@@ -1,5 +1,6 @@
 ﻿using EventApi.Interfaces;
 using EventApi.Models;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace EventApi.Services;
@@ -23,9 +24,13 @@ public class EventService : IEventService
         return _events.DeleteOne(item => item.Id == id);
     }
 
-    public List<Event> Get()
+    public List<Event> Get(int? page, int? size)
     {
-        return _events.Find(item => true).ToList();
+        int? tPage = page <= 0 ? 1 : page;
+
+        int? tSize = (size <= 0 || size > 100) ? 40 : size;
+
+        return _events.Find(item => true).Skip((tPage - 1) * tSize).Limit(tSize).ToList();
     }
 
     public Event Get(string id)

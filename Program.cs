@@ -78,9 +78,9 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/event", ([FromServices] IEventService eventService) =>
+app.MapGet("/event", ([FromServices] IEventService eventService, int? page, int? size) =>
 {
-    var events = eventService.Get();
+    var events = eventService.Get(page, size);
 
     var eventDtos = from e in events select e.ToDto();
 
